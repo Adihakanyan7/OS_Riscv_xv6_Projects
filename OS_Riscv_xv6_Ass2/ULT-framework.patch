@@ -1,0 +1,113 @@
+diff --git a/Makefile b/Makefile
+index 39a99d7..6c61fc9 100644
+--- a/Makefile
++++ b/Makefile
+@@ -87,7 +87,7 @@ $U/initcode: $U/initcode.S
+ tags: $(OBJS) _init
+ 	etags *.S *.c
+ 
+-ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o
++ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o $U/uswtch.o
+ 
+ _%: %.o $(ULIB)
+ 	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
+diff --git a/user/uswtch.S b/user/uswtch.S
+new file mode 100644
+index 0000000..1007868
+--- /dev/null
++++ b/user/uswtch.S
+@@ -0,0 +1,40 @@
++# Context switch for user threads
++#
++#   void uswtch(struct context *old, struct context *new);
++# 
++# Save current registers in old. Load from new.	
++
++
++.globl uswtch
++uswtch:
++        sd ra, 0(a0)
++        sd sp, 8(a0)
++        sd s0, 16(a0)
++        sd s1, 24(a0)
++        sd s2, 32(a0)
++        sd s3, 40(a0)
++        sd s4, 48(a0)
++        sd s5, 56(a0)
++        sd s6, 64(a0)
++        sd s7, 72(a0)
++        sd s8, 80(a0)
++        sd s9, 88(a0)
++        sd s10, 96(a0)
++        sd s11, 104(a0)
++
++        ld ra, 0(a1)
++        ld sp, 8(a1)
++        ld s0, 16(a1)
++        ld s1, 24(a1)
++        ld s2, 32(a1)
++        ld s3, 40(a1)
++        ld s4, 48(a1)
++        ld s5, 56(a1)
++        ld s6, 64(a1)
++        ld s7, 72(a1)
++        ld s8, 80(a1)
++        ld s9, 88(a1)
++        ld s10, 96(a1)
++        ld s11, 104(a1)
++        
++        ret
+\ No newline at end of file
+diff --git a/user/uthread.h b/user/uthread.h
+new file mode 100644
+index 0000000..7681343
+--- /dev/null
++++ b/user/uthread.h
+@@ -0,0 +1,47 @@
++#define STACK_SIZE  4000
++#define MAX_UTHREADS  4
++
++enum sched_priority { LOW, MEDIUM, HIGH };
++
++/* Possible states of a thread: */
++enum tstate { FREE, RUNNING, RUNNABLE };
++
++// Saved registers for context switches.
++struct context {
++    uint64 ra;
++    uint64 sp;
++
++    // callee saved
++    uint64 s0;
++    uint64 s1;
++    uint64 s2;
++    uint64 s3;
++    uint64 s4;
++    uint64 s5;
++    uint64 s6;
++    uint64 s7;
++    uint64 s8;
++    uint64 s9;
++    uint64 s10;
++    uint64 s11;
++};
++
++struct uthread {
++    char                ustack[STACK_SIZE];  // the thread's stack
++    enum tstate         state;          // FREE, RUNNING, RUNNABLE
++    struct context      context;        // uswtch() here to run process
++    enum sched_priority priority;       // scheduling priority
++};
++
++extern void uswtch(struct context*, struct context*);
++
++int uthread_create(void (*start_func)(), enum sched_priority priority);
++
++void uthread_yield();
++void uthread_exit();
++
++int uthread_start_all();
++enum sched_priority uthread_set_priority(enum sched_priority priority);
++enum sched_priority uthread_get_priority();
++
++struct uthread* uthread_self();

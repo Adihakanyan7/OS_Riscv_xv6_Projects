@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "types.h": "c",
+        "riscv.h": "c",
+        "defs.h": "c",
+        "proc.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "disabled",
+}
